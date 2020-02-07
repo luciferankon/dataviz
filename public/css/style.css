@@ -1,0 +1,8 @@
+svg {
+  border: 1px solid black;
+}
+
+svg > rect {
+  fill: grey;
+  y: 0;
+}
