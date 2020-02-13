@@ -9,11 +9,11 @@ svg {
   align-items: center;
 }
 
-svg > g > rect {
-  fill: grey;
-}
-
 .axis-label {
   font-size: 20px;
   text-anchor: middle;
+}
+
+.x-axis {
+  font-weight: bold;
 }
