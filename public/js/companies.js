@@ -2,14 +2,26 @@ const chartSize = { width: 800, height: 600 };
 const margin = { left: 100, right: 10, top: 20, bottom: 150 };
 const width = chartSize.width - margin.left - margin.right;
 const height = chartSize.height - margin.top - margin.bottom;
+const color = d3.scaleOrdinal(d3.schemeCategory10);
+let configIndex = -1;
 
-const t = d3
-	.transition()
-	.duration(1000)
-	.ease(d3.easeLinear);
+const configs = [
+	["CMP", d => `₹ ${d}`],
+	["MarketCap", d => `₹ ${d / 1000}k Cr`],
+	["PE", d => `${d}`],
+	["DivYld", d => `${d}%`],
+	["ROCE", d => `${d}%`]
+];
+
+const slow = () =>
+	d3
+		.transition()
+		.duration(1000)
+		.ease(d3.easeLinear);
 
 const updateChart = (companies, [fieldName, tickFormat]) => {
-	const svg = d3.select("#chart-area svg");
+	const g = d3.select("#chart-area svg .companies");
+	const rects = g.selectAll("rect").data(companies, c => c.Name);
 
 	const maxValue = _.get(_.maxBy(companies, fieldName), fieldName, 0);
 	const y = d3
@@ -17,14 +29,14 @@ const updateChart = (companies, [fieldName, tickFormat]) => {
 		.domain([0, maxValue])
 		.range([height, 0]);
 
-	svg.select(".y.axis-label").text(fieldName);
+	g.select(".y.axis-label").text(fieldName);
 
 	const yAxis = d3
 		.axisLeft(y)
 		.ticks(10)
 		.tickFormat(tickFormat);
 
-	svg.select(".y.axis").call(yAxis);
+	g.select(".y.axis").call(yAxis);
 
 	const x = d3
 		.scaleBand()
@@ -33,52 +45,33 @@ const updateChart = (companies, [fieldName, tickFormat]) => {
 		.padding(0.6);
 
 	const xAxis = d3.axisBottom(x);
-	svg.select(".x-axis").call(xAxis);
+	g.select(".x-axis").call(xAxis);
 
-	svg
-		.selectAll("g rect")
-		.data(companies, (c, i) => c.Name)
-		.transition(t)
+	rects
+		.enter()
+		.append("rect")
+		.attr("x", b => x(b.Name))
+		.attr("y", () => y(0))
+		.attr("fill", b => color(b.Name))
+		.merge(rects)
+		.transition(slow())
 		.attr("height", b => y(0) - y(b[fieldName]))
 		.attr("width", x.bandwidth)
 		.attr("x", c => x(c.Name))
 		.attr("y", b => y(b[fieldName]));
 
-	svg
-		.selectAll("g rect")
-		.data(companies, (c, i) => c.Name)
-		.exit()
-		.remove()
-		.transition(t);
+	rects.exit().remove();
 };
 
-const drawChart = (companies, [fieldName, tickFormat]) => {
+const drawChart = () => {
 	const svg = d3
-		.select("#chart-area")
-		.append("svg")
+		.select("#chart-area svg")
 		.attr("height", chartSize.height)
 		.attr("width", chartSize.width);
 
-	const y = d3
-		.scaleLinear()
-		.domain([0, _.maxBy(companies, fieldName)[fieldName]])
-		.range([height, 0]);
-
-	const x = d3
-		.scaleBand()
-		.domain(_.map(companies, "Name"))
-		.range([0, width])
-		.padding(0.6);
-
-	const color = d3.scaleOrdinal(d3.schemeCategory10);
-	const xAxis = d3.axisBottom(x);
-	const yAxis = d3
-		.axisLeft(y)
-		.ticks(10)
-		.tickFormat(tickFormat);
-
 	const g = svg
 		.append("g")
+		.attr("class", "companies")
 		.attr("transform", `translate(${margin.left},${margin.top})`);
 
 	g.append("text")
@@ -96,23 +89,9 @@ const drawChart = (companies, [fieldName, tickFormat]) => {
 
 	g.append("g")
 		.attr("class", "x-axis")
-		.call(xAxis)
 		.attr("transform", `translate(0,${height})`);
 
-	g.append("g")
-		.attr("class", "y axis")
-		.call(yAxis);
-
-	const rects = g.selectAll("rect").data(companies, (c, i) => c.Name);
-
-	const newRects = rects.enter();
-	newRects
-		.append("rect")
-		.attr("x", b => x(b.Name))
-		.attr("y", b => y(b[fieldName]))
-		.attr("width", x.bandwidth)
-		.attr("height", b => y(0) - y(b[fieldName]))
-		.attr("fill", b => color(b.Name));
+	g.append("g").attr("class", "y axis");
 };
 
 const parseCompany = ({ Name, ...rest }) => {
@@ -120,23 +99,24 @@ const parseCompany = ({ Name, ...rest }) => {
 	return { Name, ...rest };
 };
 
-const configs = [
-	["CMP", d => `₹ ${d}`],
-	["MarketCap", d => `₹ ${d / 1000}k Cr`],
-	["PE", d => `${d}`],
-	["DivYld", d => `${d}%`],
-	["ROCE", d => `${d}%`]
-];
-
-let configIndex = 0;
-const startVisualization = companies => {
-	drawChart(companies, configs[configIndex]);
+const frequentlyMoveCompanies = (src, dest) => {
 	setInterval(() => {
-		configIndex = ++configIndex % configs.length;
-		updateChart(companies, configs[configIndex]);
-	}, 2000);
+		const c = src.shift();
+		if (c) dest.push(c);
+		else [src, dest] = [dest, src];
+	}, 1000);
+};
 
-	setInterval(() => companies.shift(), 4000);
+const nextStep = () => {
+	configIndex = ++configIndex % configs.length;
+	return configs[configIndex];
+};
+
+const startVisualization = companies => {
+	drawChart();
+	updatePrices(companies, nextStep());
+	setInterval(() => updatePrices(companies, nextStep()), 1000);
+	frequentlyMoveCompanies(companies, []);
 };
 
 const main = () => {
