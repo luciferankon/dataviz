@@ -1,44 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<title>Companies</title>
+		<link rel="stylesheet" href="css/bootstrap.min.css" />
+		<link rel="stylesheet" href="css/equity.css" />
+		<!-- Range slider code -->
+		<script src="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.js"></script>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Companies</title>
-  <link rel="stylesheet" href="css/bootstrap.min.css">
-  <link rel="stylesheet" href="css/equity.css">
-   <!-- Range slider code -->
-   <script src="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.js"></script>
+		<!-- Range slider style -->
+		<link
+			href="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.css"
+			rel="stylesheet"
+		/>
+	</head>
 
-   <!-- Range slider style -->
-   <link href="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.css" rel="stylesheet">
-</head>
+	<body>
+		<script src="js/lodash.min.js"></script>
+		<script src="js/d3.v5.min.js"></script>
+		<script src="js/equity.js"></script>
 
-<body>
-  <script src="js/lodash.min.js"></script>
-  <script src="js/d3.v5.min.js"></script>
-  <script src="js/equity.js"></script>
-
-  <div class="container">
-    <div class="row">
-      <div class="col-sm-6">
-        <div id="slider-container"></div>
-        <div id="range-label"></div>
-      </div>
-      <div class="col-sm-2">
-        <input type="number" id="sma-period-input"/>
-      </div>
-      <div class="col-sm-2">
-        <input type="number" id="sma-offset-input"/>
-      </div>
-    </div>
-    <div class="row">
-      <div id="chart-area" class="col-sm">
-        <svg></svg>
-      </div>
-    </div>
-  </div>
-</body>
-
+		<div class="container">
+			<div class="row">
+				<div class="col-sm-6">
+					<div id="slider-container"></div>
+					<div id="range-label"></div>
+				</div>
+				<div class="col-sm-2">
+					<input type="number" id="sma-period-input" />
+				</div>
+				<div class="col-sm-2">
+					<input type="number" id="sma-offset-input" />
+				</div>
+			</div>
+			<div class="row">
+				<div id="chart-area" class="col-sm">
+					<svg></svg>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th>Purchase Date</th>
+								<th>Buy Price</th>
+								<th>Sell Date</th>
+								<th>Sell price</th>
+								<th>Profit/loss</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+				<div class="col-sm-6">
+					<table class="stats-table table-sm">
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>

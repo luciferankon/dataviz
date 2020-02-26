@@ -21,11 +21,12 @@ const updatePrices = (quotes, [fieldName, tickFormat]) => {
 	const minClose = _.get(_.minBy(quotes, fieldName), fieldName, 0);
 	const validSmas = _.filter(quotes, "sma");
 	const minAvg = _.get(_.minBy(validSmas, "sma"), "sma", 0);
+	const maxAvg = _.get(_.maxBy(validSmas, "sma"), "sma", 0);
 	const maxClose = _.get(_.maxBy(quotes, fieldName), fieldName, 0);
 
 	const y = d3
 		.scaleLinear()
-		.domain([Math.min(minClose, minAvg), maxClose])
+		.domain([Math.min(minClose, minAvg), Math.max(maxClose, maxAvg)])
 		.range([height, 0]);
 
 	g.select(".y.axis-label").text(fieldName);
@@ -52,7 +53,6 @@ const updatePrices = (quotes, [fieldName, tickFormat]) => {
 			.y(q => y(q[fieldName]));
 
 	sma.attr("d", line("sma")(_.filter(quotes, "sma")));
-	console.log(_.filter(quotes, "sma"));
 
 	closePrice.attr("d", line("Close")(quotes));
 	// rects
@@ -144,9 +144,88 @@ const initSlider = function(quotes) {
 	slider.range(firstDate, lastDate);
 };
 
+const recordTransaction = quotes => {
+	const transactions = quotes.slice(101).reduce((transactions, quote) => {
+		const lastElem = _.last(transactions) || {};
+		if (quote.Close >= quote.sma && (!lastElem.buy || lastElem.sell)) {
+			transactions.push({ buy: quote });
+		}
+		if (quote.Close <= quote.sma && !lastElem.sell && lastElem.buy) {
+			_.last(transactions)["sell"] = quote;
+		}
+		return transactions;
+	}, []);
+	_.last(transactions)["sell"] = _.last(quotes);
+	return transactions;
+};
+
+const drawTable = transactions => {
+	transactions.forEach(
+		transaction =>
+			(transaction.profit = _.round(
+				transaction.sell.Close - transaction.buy.Close
+			))
+	);
+	const tr = d3
+		.select(".table tbody")
+		.selectAll("tr")
+		.data(
+			transactions.map(transaction => ({
+				buyDate: transaction.buy.Date,
+				buyClose: _.round(transaction.buy.Close),
+				sellDate: transaction.sell.Date,
+				sellClose: _.round(transaction.sell.Close),
+				profit: transaction.profit
+			}))
+		)
+		.enter()
+		.append("tr");
+
+	const td = tr
+		.selectAll("td")
+		.data(function(d, i) {
+			return Object.values(d);
+		})
+		.enter()
+		.append("td")
+		.text(d => d);
+
+	const totalProfit = transactions.reduce((a, b) => a + b.profit, 0);
+	const totalWin = transactions
+		.filter(x => x.profit > 0)
+		.reduce((a, b) => a + b.profit, 0);
+
+	const totalLoss = transactions
+		.filter(x => x.profit < 0)
+		.reduce((a, b) => a + b.profit, 0);
+
+	const noOfWins = transactions.filter(x => x.profit > 0).length;
+	const noOfLosses = transactions.filter(x => x.profit < 0).length;
+
+	const stats = [
+		["Total transactions", transactions.length],
+		["Wins", noOfWins],
+		["Average Win", _.round(totalWin / noOfWins)],
+		["Losses", noOfLosses],
+		["Average Loss", _.round(totalLoss / noOfLosses)],
+		["Total Profit", totalProfit]
+	];
+	const statsTr = d3
+		.select(".stats-table tbody")
+		.selectAll("tr")
+		.data(stats)
+		.enter()
+		.append("tr");
+
+	statsTr.append('th').text(s=>s[0]);
+	statsTr.append('td').text(s=>s[1]);
+};
+
 const startVisualization = (quotes, smaPeriod, smaOffset) => {
 	analyzeData(quotes, smaPeriod, smaOffset);
+	const transactions = recordTransaction(quotes);
 	drawChart();
+	drawTable(transactions);
 
 	initSlider(quotes);
 	updatePrices(quotes, nextStep());
